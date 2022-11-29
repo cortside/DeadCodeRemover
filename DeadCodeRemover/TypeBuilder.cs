@@ -17,7 +17,7 @@ namespace DeadCodeRemover
         }
         public async Task<IEnumerable<TypeInfo>> BuildTypes(Solution solution, IEnumerable<Project> projects, IKnownTypesRepository knownTypes)
         {
-            List<TypeInfo> types = new List<TypeInfo>();
+            var types = new List<TypeInfo>();
             foreach (var project in projects)
             {
                 types.AddRange(await BuildTypes(solution, project, knownTypes));
@@ -28,19 +28,20 @@ namespace DeadCodeRemover
 
         private async Task<IEnumerable<TypeInfo>> BuildTypes(Solution solution, Project project, IKnownTypesRepository knownTypes)
         {
-            List<TypeInfo> types = new List<TypeInfo>();
+            var types = new List<TypeInfo>();
             _logger.Info($"Build types for project {project.Name}");
             foreach (var doc in project.Documents)
             {
-                var model = await doc.GetSemanticModelAsync();
-                var declarations = (await doc.GetSyntaxRootAsync()).DescendantNodes().Where(n => n is TypeDeclarationSyntax || n is EnumDeclarationSyntax);
+                var model = await doc.GetSemanticModelAsync() ?? throw new InvalidOperationException();
+                var declarations = (await doc.GetSyntaxRootAsync())?.DescendantNodes()
+                    .Where(n => n is TypeDeclarationSyntax or EnumDeclarationSyntax) ?? throw new InvalidOperationException();
                 foreach (var declaration in declarations)
                 {
                     var lineSpan = declaration.GetLocation().GetMappedLineSpan();
-                    int lines = lineSpan.EndLinePosition.Line - lineSpan.StartLinePosition.Line + 1;
-                    var type = (INamedTypeSymbol)model.GetDeclaredSymbol(declaration);
-                    IEnumerable<ISymbol> typesUsingMe = await GetTypesUsingMe(solution, project, type);
-                    var typeInfo = new TypeInfo()
+                    var lines = lineSpan.EndLinePosition.Line - lineSpan.StartLinePosition.Line + 1;
+                    var type = model.GetDeclaredSymbol(declaration) as INamedTypeSymbol ?? throw new InvalidOperationException();
+                    var typesUsingMe =( await GetTypesUsingMe(solution, project, type)).ToList();
+                    var typeInfo = new TypeInfo
                     {
                         Symbol = type,
                         Node = declaration,
@@ -60,7 +61,7 @@ namespace DeadCodeRemover
         {
             if (!_compilations.ContainsKey(project))
             {
-                _compilations[project] = await project.GetCompilationAsync();
+                _compilations[project] = await project.GetCompilationAsync() ?? throw new InvalidOperationException();
             }
             return _compilations[project];
         }
@@ -73,7 +74,7 @@ namespace DeadCodeRemover
                 var extMethods = ((INamedTypeSymbol)type).GetMembers().Where(s => s.Kind == SymbolKind.Method).Where(m => ((IMethodSymbol)m).IsExtensionMethod);
                 if (extMethods.Any())
                 {
-                    List<ISymbol> typesUsingMe = new List<ISymbol>();
+                    var typesUsingMe = new List<ISymbol>();
                     foreach (var extMethod in extMethods)
                     {
                         typesUsingMe.AddRange(await FilterSelfReferences(solution, extMethod));
@@ -85,7 +86,7 @@ namespace DeadCodeRemover
         }
         private async Task<IEnumerable<ISymbol>> FilterSelfReferences(Solution solution, ISymbol type)
         {
-            List<ISymbol> typesUsingMe = new List<ISymbol>();
+            var typesUsingMe = new List<ISymbol>();
             var typeRefs = await SymbolFinder.FindReferencesAsync(type, solution);
             foreach (var typeRef in typeRefs)
             {
@@ -103,8 +104,8 @@ namespace DeadCodeRemover
                     {
                         continue;
                     }
-                    Compilation compilation = await GetProjectCompilation(loc.Document.Project);
-                    ISymbol nodeSymbol = compilation.GetSemanticModel(loc.Location.SourceTree).GetDeclaredSymbol(node);
+                    var compilation = await GetProjectCompilation(loc.Document.Project);
+                    var nodeSymbol = compilation.GetSemanticModel(loc.Location.SourceTree).GetDeclaredSymbol(node);
                     if (nodeSymbol != null && !SymbolEqualityComparer.Default.Equals(nodeSymbol, type))
                     {
                         typesUsingMe.Add(nodeSymbol);
@@ -116,13 +117,13 @@ namespace DeadCodeRemover
         }
         private void FindDeadTypes(IEnumerable<TypeInfo> types, IKnownTypesRepository knownTypes, int depth)
         {
-            IEnumerable<TypeInfo> unknownTypes = types.Where(t => !t.IsDead.HasValue);
-            IEnumerable<TypeInfo> deadTypes = types.Where(t => t.IsDead == true && t.Depth == depth - 1);
+            var unknownTypes = types.Where(t => !t.IsDead.HasValue);
+            var deadTypes = types.Where(t => t.IsDead == true && t.Depth == depth - 1);
             if (unknownTypes.Count() == 0)
             {
                 return;
             }
-            bool found = false;
+            var found = false;
             foreach (var type in unknownTypes)
             {
                 if (type.TypesUsingMe.All(t => deadTypes.Select(dt => dt.Symbol).Contains(t, SymbolEqualityComparer.Default)))

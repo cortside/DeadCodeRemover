@@ -30,64 +30,53 @@ namespace DeadCodeRemover
             var visualStudioInstances = MSBuildLocator.QueryVisualStudioInstances().ToArray();
             var instance = visualStudioInstances[0];
             var knowTypes = new KnownTypesRepository();
-            knowTypes.LoadKnownTypes(Path.GetDirectoryName(opt.Solution));
+            knowTypes.LoadKnownTypes(Path.GetDirectoryName(opt.Solution) ?? throw new InvalidOperationException());
             MSBuildLocator.RegisterInstance(instance);
-            using (var workspace = MSBuildWorkspace.Create())
-            {
-                workspace.WorkspaceFailed += (o, e) => Logger.Warn(e.Diagnostic.Message);
-                Logger.Info($"Loading solution {opt.Solution} into workspace.");
-                var solution = await workspace.OpenSolutionAsync(opt.Solution, new ConsoleProgressReporter());
-                var typeBuilder = new TypeBuilder(Logger);
-                IEnumerable<TypeInfo> types;
-                if (opt.Project == null)
-                {
-                    types = await typeBuilder.BuildTypes(solution, solution.Projects, knowTypes);
-                }
-                else
-                {
-                    var project = solution.Projects.Where(p => p.FilePath == opt.Project).FirstOrDefault();
-                    if (project == null)
-                    {
-                        throw new ArgumentException($"Cannot find project {opt.Project} in solution,");
-                    }
-                    types = await typeBuilder.BuildTypes(solution, new List<Project>() { project }, knowTypes);
-                }
-                var deadTypeRemover = new DeadTypeRemover(Logger);
-                await deadTypeRemover.RemoveDeadTypes(workspace, types.Where(t => t.IsDead == true));
-                OutputResults(types);
-                Console.ReadKey();
-            }
+            using var workspace = MSBuildWorkspace.Create();
+            workspace.WorkspaceFailed += (o, e) => Logger.Warn(e.Diagnostic.Message);
+            Logger.Info($"Loading solution {opt.Solution} into workspace.");
+            var solution = await workspace.OpenSolutionAsync(opt.Solution, new ConsoleProgressReporter());
+            var typeBuilder = new TypeBuilder(Logger);
+            var project = solution.Projects.FirstOrDefault(p => p.FilePath == opt.Project);
+            if (project == null) throw new ArgumentException($"Cannot find project {opt.Project} in solution,");
+
+            var types = await typeBuilder.BuildTypes(solution, new List<Project> { project }, knowTypes);
+            var deadTypeRemover = new DeadTypeRemover(Logger);
+            var typeInfos = types as TypeInfo[] ?? types.ToArray();
+            await deadTypeRemover.RemoveDeadTypes(workspace, typeInfos.Where(t => t.IsDead == true));
+            OutputResults(typeInfos);
+            Console.ReadKey();
         }
         private static void OutputResults(IEnumerable<TypeInfo> types)
         {
-            using (var writer = new StreamWriter($"DeadCodeResult_Roslyn.csv"))
-            using (var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            using var writer = new StreamWriter($"DeadCodeResult_Roslyn.csv");
+            using var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture);
+            csvWriter.WriteField("Full Name");
+            csvWriter.WriteField("Depth");
+            csvWriter.WriteField("Project");
+            csvWriter.WriteField("Source");
+            csvWriter.WriteField("NumberOfLines");
+            csvWriter.WriteField("Declaration Type");
+            csvWriter.WriteField("Action");
+            csvWriter.NextRecord();
+            foreach (var type in types)
             {
-                csvWriter.WriteField("Full Name");
-                csvWriter.WriteField("Depth");
-                csvWriter.WriteField("Project");
-                csvWriter.WriteField("Source");
-                csvWriter.WriteField("NumberOfLines");
-                csvWriter.WriteField("Declaration Type");
-                csvWriter.WriteField("Action");
+                csvWriter.WriteField($"{type.FullName}");
+                csvWriter.WriteField($"{type.Depth}");
+                csvWriter.WriteField($"{type.ContainingProject.FilePath}");
+                csvWriter.WriteField($"{type.ContainingDocument.FilePath}");
+                csvWriter.WriteField($"{type.NumberOfLines}");
+                csvWriter.WriteField($"{type.Symbol.TypeKind}");
+                csvWriter.WriteField($"{type.RemovalAction}");
                 csvWriter.NextRecord();
-                foreach (var type in types)
-                {
-                    csvWriter.WriteField($"{type.FullName}");
-                    csvWriter.WriteField($"{type.Depth}");
-                    csvWriter.WriteField($"{type.ContainingProject.FilePath}");
-                    csvWriter.WriteField($"{type.ContainingDocument.FilePath}");
-                    csvWriter.WriteField($"{type.NumberOfLines}");
-                    csvWriter.WriteField($"{((INamedTypeSymbol)type.Symbol).TypeKind}");
-                    csvWriter.WriteField($"{type.RemovalAction}");
-                    csvWriter.NextRecord();
-                }
             }
         }
-        private static VisualStudioInstance SelectVisualStudioInstance(VisualStudioInstance[] visualStudioInstances)
+
+        // ReSharper disable once UnusedMember.Local
+        private static VisualStudioInstance SelectVisualStudioInstance(IReadOnlyList<VisualStudioInstance> visualStudioInstances)
         {
             Logger.Info("Multiple installs of MSBuild detected please select one:");
-            for (int i = 0; i < visualStudioInstances.Length; i++)
+            for (var i = 0; i < visualStudioInstances.Count; i++)
             {
                 Logger.Info($"Instance {i + 1}");
                 Logger.Info($" Name: {visualStudioInstances[i].Name}");
@@ -97,9 +86,9 @@ namespace DeadCodeRemover
             while (true)
             {
                 var userResponse = Console.ReadLine();
-                if (int.TryParse(userResponse, out int instanceNumber) &&
+                if (int.TryParse(userResponse, out var instanceNumber) &&
                 instanceNumber > 0 &&
-                instanceNumber <= visualStudioInstances.Length)
+                instanceNumber <= visualStudioInstances.Count)
                 {
                     return visualStudioInstances[instanceNumber - 1];
                 }

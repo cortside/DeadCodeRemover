@@ -16,12 +16,12 @@ namespace DeadCodeRemover
 
         public async Task<int> RemoveDeadTypes(MSBuildWorkspace workspace, IEnumerable<TypeInfo> types)
         {
-            int count = 0;
+            var count = 0;
             foreach (var document in types.Select(t => t.ContainingDocument).Where(t => !t.FilePath.EndsWith(".designer.cs", StringComparison.OrdinalIgnoreCase)).Distinct())
             {
                 _logger.Info($"Processing document {document.Name} in project {document.Project.Name}.");
-                DocumentEditor docEditor = await DocumentEditor.CreateAsync(document);
-                int typesRemoved = RemoveTypesFromDocument(document, docEditor, types);
+                var docEditor = await DocumentEditor.CreateAsync(document);
+                var typesRemoved = RemoveTypesFromDocument(document, docEditor, types);
                 count += typesRemoved;
                 if (typesRemoved > 0)
                 {
@@ -41,7 +41,7 @@ namespace DeadCodeRemover
         }
         private int RemoveTypesFromDocument(Document document, DocumentEditor docEditor, IEnumerable<TypeInfo> types)
         {
-            int count = 0;
+            var count = 0;
             foreach (var typeInfo in types.Where(t => t.ContainingDocument == document).OrderBy(t => t.Depth))
             {
                 _logger.Info($" Remove {typeInfo.Node.Kind()} {typeInfo.Symbol.Name} at depth {typeInfo.Depth}.");
@@ -88,7 +88,7 @@ namespace DeadCodeRemover
                 _logger.Info($" Remove file {document.FilePath}");
                 File.Delete(document.FilePath);
                 var fileName = Path.GetFileName(document.FilePath);
-                XDocument doc = XDocument.Load(document.Project.FilePath);
+                var doc = XDocument.Load(document.Project.FilePath);
                 var resourceElements = doc.Descendants("EmbeddedResource").Where(el => el.Element("DependentUpon") != null && el.Element("DependentUpon").Value == fileName);
                 foreach (var resxElement in resourceElements)
                 {

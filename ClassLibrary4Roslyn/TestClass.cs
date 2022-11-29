@@ -13,7 +13,7 @@ namespace ClassLibrary4Roslyn
         {
             try
             {
-                EnumHasReferences enumRef = EnumHasReferences.YES;
+                var enumRef = EnumHasReferences.YES;
                 StaticClass.StaticMethod();
                 SingletonClass.Instance.GetHashCode();
                 if (ClassWithOnlyConstants.IndexColumnName == "index" && enumRef == EnumHasReferences.YES)

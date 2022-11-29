@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestDeadCodeRemover", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassLibrary4Roslyn", "ClassLibrary4Roslyn\ClassLibrary4Roslyn.csproj", "{CBE1DDE2-44B5-4949-81A9-0CF95FA6FD6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuanTest", "TuanTest\TuanTest.csproj", "{4FCB6B9D-9154-42CC-9CEB-17C6F93AA5C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{CBE1DDE2-44B5-4949-81A9-0CF95FA6FD6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CBE1DDE2-44B5-4949-81A9-0CF95FA6FD6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CBE1DDE2-44B5-4949-81A9-0CF95FA6FD6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FCB6B9D-9154-42CC-9CEB-17C6F93AA5C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FCB6B9D-9154-42CC-9CEB-17C6F93AA5C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FCB6B9D-9154-42CC-9CEB-17C6F93AA5C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FCB6B9D-9154-42CC-9CEB-17C6F93AA5C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
