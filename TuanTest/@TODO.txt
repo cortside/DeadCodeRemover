@@ -1,0 +1,14 @@
+//https://stackoverflow.com/questions/44164004/roslyn-find-all-assignments-made-to-a-field
+//https://stackoverflow.com/questions/31861762/finding-all-references-to-a-method-with-roslyn
+//https://stackoverflow.com/questions/23245368/how-to-access-invocations-through-extension-methods-methods-in-static-classes-a
+//https://stackoverflow.com/questions/24257437/how-do-i-detect-and-correct-usless-try-catch-blocks
+
+https://joshvarty.com/learn-roslyn-now/
+https://joshvarty.com/2014/10/30/learn-roslyn-now-part-7-introducing-the-semantic-model/
+https://jason-ge.medium.com/detect-and-remove-dead-code-with-roslyn-26e741b20d3c
+
+
+https://stackoverflow.com/questions/49282914/roslyn-find-all-references-to-a-method-in-all-projects-in-a-solution
+https://stackoverflow.com/questions/35459474/find-all-method-calls-for-a-specific-method-using-roslyn
+https://stackoverflow.com/questions/24257437/how-do-i-detect-and-correct-usless-try-catch-blocks
+https://stackoverflow.com/questions/25737144/replacing-the-body-of-a-method-removes-the-following-line-break
